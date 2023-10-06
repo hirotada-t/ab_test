@@ -22,12 +22,15 @@ function custom_fields_callback($post)
 
   $denominator = calc_total_value($post->ID);
 
+  $field = '';
+  $error = 0;
+
   for ($i = 1; $i <= 5; $i++) {
     $path_or_url = get_post_meta($post->ID, "path_or_url_$i", true);
     $ratio = get_post_meta($post->ID, "probability_$i", true);
     $probability = $denominator > 0 ? round(intval($ratio) / $denominator * 100) : 0;
 
-    $field = <<<EOM
+    $field .= <<<EOM
     <div style="margin:20px 0;">
       <label for="path_or_url_$i">Path or URL $i: </label>
       <input type="text" id="path_or_url_$i" name="path_or_url_$i" value="$path_or_url">/
@@ -35,8 +38,14 @@ function custom_fields_callback($post)
     </div>
     EOM;
 
-    echo $field;
+    if (empty($path_or_url) xor empty($ratio)) {
+      $error++;
+    }
   }
+  if ($error) {
+    echo '<span style="color:red;">※未入力の項目が' . $error . '箇所あります。</span><br>';
+  }
+  echo $field;
 }
 
 // カスタムフィールドのデータ保存
