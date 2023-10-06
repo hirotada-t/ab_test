@@ -1,13 +1,4 @@
 <?php
-/*
-Plugin Name: AB Test Field
-Description: This plugin adds custom field at edit page to set AB test.
-Version: 1.0.0
-Author: sizebook
-Author URI: https://sizebook.co.jp/
-*/
-
-if (!defined('ABSPATH')) exit;
 
 function add_custom_fields_meta_box()
 {
@@ -21,31 +12,30 @@ function custom_fields_callback($post)
   wp_nonce_field('save_ab_test_fields_data', 'custom_fields_meta_box_nonce');
 
   $denominator = calc_total_value($post->ID);
-
-  $field = '';
+  $fields = '';
   $error = 0;
 
   for ($i = 1; $i <= 5; $i++) {
-    $path_or_url = get_post_meta($post->ID, "path_or_url_$i", true);
-    $ratio = get_post_meta($post->ID, "probability_$i", true);
+    $path = get_post_meta($post->ID, "path_$i", true);
+    $ratio = get_post_meta($post->ID, "ratio_$i", true);
     $probability = $denominator > 0 ? round(intval($ratio) / $denominator * 100) : 0;
 
-    $field .= <<<EOM
+    $fields .= <<<EOM
     <div style="margin:20px 0;">
-      <label for="path_or_url_$i">Path or URL $i: </label>
-      <input type="text" id="path_or_url_$i" name="path_or_url_$i" value="$path_or_url">/
-      <input type="number" id="probability_$i" name="probability_$i" value="$ratio" step="1" min="0" max="10">($probability%)
+      <label for="path_$i">Path $i: </label>
+      <input type="text" id="path_$i" name="path_$i" value="$path">/
+      <input type="number" id="probability_$i" name="ratio_$i" value="$ratio" step="1" min="0" max="10">($probability%)
     </div>
     EOM;
 
-    if (empty($path_or_url) xor empty($ratio)) {
+    if (empty($path) xor empty($ratio)) {
       $error++;
     }
   }
   if ($error) {
     echo '<span style="color:red;">※未入力の項目が' . $error . '箇所あります。</span><br>';
   }
-  echo $field;
+  echo $fields;
 }
 
 // カスタムフィールドのデータ保存
@@ -55,11 +45,11 @@ function save_ab_test_fields_data($post_id)
   if (!wp_verify_nonce($_POST['custom_fields_meta_box_nonce'], 'save_ab_test_fields_data')) return;
 
   for ($i = 1; $i <= 5; $i++) {
-    if (array_key_exists("path_or_url_$i", $_POST)) {
-      update_post_meta($post_id, "path_or_url_$i", sanitize_text_field($_POST["path_or_url_$i"]));
+    if (array_key_exists("path_$i", $_POST)) {
+      update_post_meta($post_id, "path_$i", sanitize_text_field($_POST["path_$i"]));
     }
-    if (array_key_exists("probability_$i", $_POST)) {
-      update_post_meta($post_id, "probability_$i", sanitize_text_field($_POST["probability_$i"]));
+    if (array_key_exists("ratio_$i", $_POST)) {
+      update_post_meta($post_id, "ratio_$i", sanitize_text_field($_POST["ratio_$i"]));
     }
   }
 }
@@ -69,8 +59,8 @@ function calc_total_value($post_id)
 {
   $total_value = 0;
   for ($i = 1; $i <= 5; $i++) {
-    $probability_value = get_post_meta($post_id, "probability_$i", true);
-    $total_value += intval($probability_value);
+    $ratio_value = get_post_meta($post_id, "ratio_$i", true);
+    $total_value += intval($ratio_value);
   }
   return $total_value;
 }
