@@ -1,8 +1,15 @@
 <?php
 function ab_test_redirect()
 {
-  if (is_single()) {
-    $post_id = get_the_ID();
+  $post_id = get_the_ID();
+  $run_test = get_post_meta($post_id, "run_test", true);
+
+  if (is_single() && $run_test) {
+    $error = get_post_meta($post_id, "error", true);
+    if ($error > 0) {
+      return;
+    }
+
     $redirects = [];
     $total_ratio = 0;
 
@@ -19,9 +26,9 @@ function ab_test_redirect()
       }
     }
 
-    $rand_num = mt_rand(1, $total_ratio);
+    $rand_num = mt_rand(0, $total_ratio);
     $current_ratio = 0;
-    
+
     foreach ($redirects as $redirect) {
       $current_ratio += $redirect['ratio'];
       if ($rand_num <= $current_ratio) {
