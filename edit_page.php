@@ -1,53 +1,90 @@
 <?php
 
-function add_custom_fields_meta_box()
+$NUM_OF_FIELDS = 5;
+
+function get_fields_meta_list($post_id)
 {
-  add_meta_box('custom_fields_meta_box', 'Custom Fields', 'custom_fields_callback', 'post');
+  global $NUM_OF_FIELDS;
+  $fields_list = array_pad([], $NUM_OF_FIELDS, ['path' => '', 'ratio' => '']);
+  for ($i = 0; $i < count($fields_list); $i++) {
+    $path = get_post_meta($post_id, "path_$i", true);
+    $ratio = get_post_meta($post_id, "ratio_$i", true);
+    $fields_list[$i] = [
+      'path' => $path,
+      'ratio' => $ratio
+    ];
+  }
+  return $fields_list;
 }
-add_action('add_meta_boxes', 'add_custom_fields_meta_box');
 
-// メタボックスのコールバック関数
-function custom_fields_callback($post)
+function check_error_count($fields_list)
 {
-  wp_nonce_field('save_ab_test_fields_data', 'custom_fields_meta_box_nonce');
+  for ($i = 0; $i < count($fields_list); $i++) {
+    $path_error = 0;
+    $not_entered_error = 0;
+    $path = $fields_list[$i]['path'];
+    $ratio = $fields_list[$i]['ratio'];
 
-  $denominator = calc_total_value($post->ID);
-  $fields = '';
-  $not_entered_error = 0;
-  $path_error = 0;
-  $run_test = get_post_meta($post->ID, "run_test", true);
-  $run_text = $run_test ? '実施中' : '未実施';
-  $checked = $run_test ? 'checked' : '';
-
-  for ($i = 1; $i <= 5; $i++) {
-    $path = get_post_meta($post->ID, "path_$i", true);
-    $ratio = get_post_meta($post->ID, "ratio_$i", true);
-    $probability = $denominator > 0 ? round(intval($ratio) / $denominator * 100) : 0;
-    $page_exists = get_page_by_path($path, OBJECT, "post") !== null;
-    if (!$page_exists) {
+    if (get_page_by_path($path, OBJECT, "post") === null) {
       $path_error++;
     }
-
-    $fields .= <<<EOM
-    <div style="margin:20px 0;">
-      <label for="path_$i">Path $i: </label>
-      <input type="text" id="path_$i" name="path_$i" value="$path">/
-      <input type="number" id="ratio_$i" name="ratio_$i" value="$ratio" step="1" min="0" max="10">($probability%)
-    </div>
-    EOM;
-
     if (empty($path) xor empty($ratio)) {
       $not_entered_error++;
     }
   }
 
-  if ($not_entered_error) {
-    echo '<span style="color:red;">※未入力の項目が' . $not_entered_error . '箇所あります。</span><br>';
+  return [$path_error, $not_entered_error];
+}
+
+function create_error_message($not_entered_error, $path_error)
+{
+  $error_message = '';
+  if ($not_entered_error > 0) {
+    $error_message .= '<span style="color:red;">※未入力の項目が' . $not_entered_error . '箇所あります。</span><br>';
   }
-  if ($path_error) {
-    echo '<span style="color:red;">※パスの入力ミスが' . $path_error . '箇所あります。</span><br>';
+  if ($path_error > 0) {
+    $error_message .= '<span style="color:red;">※パスの入力ミスが' . $path_error . '箇所あります。</span><br>';
   }
-  $fields .= <<<EOM
+  return $error_message;
+}
+
+function calc_total_ratio($fields_list)
+{
+  $total = 0;
+  for ($i = 0; $i < count($fields_list); $i++) {
+    $ratio = $fields_list[$i]['ratio'];
+    $total += intval($ratio);
+  }
+  return $total;
+}
+
+function create_fields($fields_list)
+{
+  $total = calc_total_ratio($fields_list);
+  $fields = '';
+
+  for ($i = 0; $i < count($fields_list); $i++) {
+    $path = $fields_list[$i]['path'];
+    $ratio = $fields_list[$i]['ratio'];
+    $probability = $total > 0 ? round(intval($ratio) / $total * 100) : 0;
+
+    $fields .= <<<EOM
+      <div style="margin:20px 0;">
+        <label for="path_$i">Path $i: </label>
+        <input type="text" id="path_$i" name="path_$i" value="$path">/
+        <input type="number" id="ratio_$i" name="ratio_$i" value="$ratio" step="1" min="0" max="10">($probability%)
+      </div>
+      EOM;
+  }
+  return $fields;
+}
+
+function create_confirm_toggle($id)
+{
+  $run_test = get_post_meta($id, "run_test", true);
+  $run_text = $run_test ? '実施中' : '未実施';
+  $checked = $run_test ? 'checked' : '';
+  return <<<EOM
     <div style="margin:20px 0;">
       テストを実施しますか？ - $run_text
       <input id="run_test" name="run_test" class="toggle_input" type="checkbox" $checked />
@@ -88,11 +125,35 @@ function custom_fields_callback($post)
     }
     </style>
     EOM;
-  $error = $not_entered_error + $path_error;
-  update_post_meta($post->ID, "error", $error);
-  $fields .= '<input type="hidden" name="error" value="' . $error . '">';
+}
+
+// メタボックスのコールバック関数
+function custom_fields_callback($post)
+{
+  wp_nonce_field('save_ab_test_fields_data', 'custom_fields_meta_box_nonce');
+
+  $fields_list = get_fields_meta_list($post->ID);
+  update_post_meta($post->ID, "fields_list", $fields_list);
+  
+  [$path_error, $not_entered_error] = check_error_count($fields_list);
+  $error_message = create_error_message($path_error, $not_entered_error);
+  $total_error_count = $not_entered_error + $path_error;
+  update_post_meta($post->ID, "error", $total_error_count);
+  
+  $fields = create_fields($fields_list);
+  $fields .= create_confirm_toggle($post->ID);
+  $fields .= '<input type="hidden" name="error" value="' . $total_error_count . '">';
+
+  echo $error_message;
   echo $fields;
 }
+
+function add_custom_fields_meta_box()
+{
+  add_meta_box('custom_fields_meta_box', 'Custom Fields', 'custom_fields_callback', 'post');
+}
+
+add_action('add_meta_boxes', 'add_custom_fields_meta_box');
 
 // カスタムフィールドのデータ保存
 function save_ab_test_fields_data($post_id)
@@ -100,25 +161,22 @@ function save_ab_test_fields_data($post_id)
   if (!isset($_POST['custom_fields_meta_box_nonce'])) return;
   if (!wp_verify_nonce($_POST['custom_fields_meta_box_nonce'], 'save_ab_test_fields_data')) return;
 
-  for ($i = 1; $i <= 5; $i++) {
+  $fields_list = get_post_meta($post_id, "fields_list", true);
+  for ($i = 0; $i < count($fields_list); $i++) {
     if (array_key_exists("path_$i", $_POST)) {
-      update_post_meta($post_id, "path_$i", sanitize_text_field($_POST["path_$i"]));
+      $path = sanitize_text_field($_POST["path_$i"]);
     }
     if (array_key_exists("ratio_$i", $_POST)) {
-      update_post_meta($post_id, "ratio_$i", sanitize_text_field($_POST["ratio_$i"]));
+      $ratio = sanitize_text_field($_POST["ratio_$i"]);
     }
+    $fields_list[$i] = [
+      'path' => $path,
+      'ratio' => $ratio
+    ];
   }
+  update_post_meta($post_id, 'fields_list', $fields_list);
   update_post_meta($post_id, 'run_test', isset($_POST['run_test']) ? 1 : 0);
   update_post_meta($post_id, 'error', intval($_POST['error']));
 }
-add_action('save_post', 'save_ab_test_fields_data');
 
-function calc_total_value($post_id)
-{
-  $total_value = 0;
-  for ($i = 1; $i <= 5; $i++) {
-    $ratio_value = get_post_meta($post_id, "ratio_$i", true);
-    $total_value += intval($ratio_value);
-  }
-  return $total_value;
-}
+add_action('save_post', 'save_ab_test_fields_data');
