@@ -1,10 +1,12 @@
 <?php
+
 function ab_test_redirect()
 {
   $post_id = get_the_ID();
   $run_test = get_post_meta($post_id, "run_test", true);
 
   if (is_single() && $run_test) {
+    $root_path = get_page_uri($post_id);
     $error = get_post_meta($post_id, "error", true);
     if ($error > 0) {
       return;
@@ -32,8 +34,10 @@ function ab_test_redirect()
     foreach ($redirects as $redirect) {
       $current_ratio += $redirect['ratio'];
       if ($rand_num <= $current_ratio) {
-        wp_redirect(home_url($redirect['path']));
-        exit;
+        if ($redirect['path'] !== $root_path) {
+          wp_redirect(home_url($redirect['path']));
+          exit;
+        }
       }
     }
   }
