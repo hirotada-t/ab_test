@@ -6,13 +6,8 @@ function get_fields_meta_list($post_id)
 {
   global $NUM_OF_FIELDS;
   $fields_list = array_pad([], $NUM_OF_FIELDS, ['path' => '', 'ratio' => '']);
-  for ($i = 0; $i < count($fields_list); $i++) {
-    $path = get_post_meta($post_id, "path_$i", true);
-    $ratio = get_post_meta($post_id, "ratio_$i", true);
-    $fields_list[$i] = [
-      'path' => $path,
-      'ratio' => $ratio
-    ];
+  if (get_post_meta($post_id, "fields_list", true)) {
+    $fields_list = get_post_meta($post_id, "fields_list", true);
   }
   return $fields_list;
 }
