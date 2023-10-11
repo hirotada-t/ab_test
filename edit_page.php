@@ -14,9 +14,9 @@ function get_fields_meta_list($post_id)
 
 function check_error_count($fields_list)
 {
+  $path_error = 0;
+  $not_entered_error = 0;
   for ($i = 0; $i < count($fields_list); $i++) {
-    $path_error = 0;
-    $not_entered_error = 0;
     $path = $fields_list[$i]['path'];
     $ratio = $fields_list[$i]['ratio'];
 
@@ -156,7 +156,7 @@ function save_ab_test_fields_data($post_id)
   if (!isset($_POST['custom_fields_meta_box_nonce'])) return;
   if (!wp_verify_nonce($_POST['custom_fields_meta_box_nonce'], 'save_ab_test_fields_data')) return;
 
-  $fields_list = get_post_meta($post_id, "fields_list", true);
+  $fields_list = get_fields_meta_list($post_id);
   for ($i = 0; $i < count($fields_list); $i++) {
     if (array_key_exists("path_$i", $_POST)) {
       $path = sanitize_text_field($_POST["path_$i"]);
