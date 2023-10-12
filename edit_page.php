@@ -1,6 +1,6 @@
 <?php
 
-$NUM_OF_FIELDS = 5;
+$NUM_OF_FIELDS = 6;
 
 function get_fields_meta_list($post_id)
 {
@@ -74,9 +74,9 @@ function create_fields($fields_list)
   return $fields;
 }
 
-function create_confirm_toggle($id)
+function create_confirm_toggle($post_id)
 {
-  $run_test = get_post_meta($id, "run_test", true);
+  $run_test = get_post_meta($post_id, "run_test", true);
   $run_text = $run_test ? '実施中' : '未実施';
   $checked = $run_test ? 'checked' : '';
   return <<<EOM
