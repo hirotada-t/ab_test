@@ -1,12 +1,12 @@
 <?php
-function add_custom_column($columns)
+function add_ab_test_column($columns)
 {
   $columns['custom_column'] = 'テスト状況';
   return $columns;
 }
-add_filter('manage_posts_columns', 'add_custom_column');
+add_filter('manage_posts_columns', 'add_ab_test_column');
 
-function custom_column_content($column_name, $post_id)
+function ab_test_column_content($column_name, $post_id)
 {
   if ($column_name == 'custom_column') {
     $fields_list = get_post_meta($post_id, "fields_list", true);
@@ -31,9 +31,9 @@ function custom_column_content($column_name, $post_id)
     }
   }
 }
-add_action('manage_posts_custom_column', 'custom_column_content', 10, 2);
+add_action('manage_posts_custom_column', 'ab_test_column_content', 10, 2);
 
-function add_custom_admin_styles()
+function add_ab_test_column_styles()
 {
   echo '<style>
           .column-custom_column {
@@ -41,9 +41,9 @@ function add_custom_admin_styles()
           }
         </style>';
 }
-add_action('admin_head', 'add_custom_admin_styles');
+add_action('admin_head', 'add_ab_test_column_styles');
 
-function quick_edit_custom_box($column_name, $post_type)
+function quick_edit_ab_test_box($column_name, $post_type)
 {
   if ($column_name != 'custom_column') return;
 ?>
@@ -59,9 +59,9 @@ function quick_edit_custom_box($column_name, $post_type)
   </fieldset>
 <?php
 }
-add_action('quick_edit_custom_box', 'quick_edit_custom_box', 10, 2);
+add_action('quick_edit_custom_box', 'quick_edit_ab_test_box', 10, 2);
 
-function quick_edit_javascript()
+function quick_edit_ab_test_javascript()
 {
 ?>
   <script type="text/javascript">
@@ -75,9 +75,9 @@ function quick_edit_javascript()
   </script>
 <?php
 }
-add_action('admin_footer-edit.php', 'quick_edit_javascript');
+add_action('admin_footer-edit.php', 'quick_edit_ab_test_javascript');
 
-function expand_quick_edit_link($actions, $post)
+function expand_quick_edit_ab_test_link($actions, $post)
 {
   $run_test = get_post_meta($post->ID, 'run_test', true);
   $actions['inline hide-if-no-js'] = '<a href="#" class="editinline" title="';
@@ -88,9 +88,9 @@ function expand_quick_edit_link($actions, $post)
   $actions['inline hide-if-no-js'] .= '<input type="hidden" id="run_test_value_' . $post->ID . '" value="' . esc_attr($run_test) . '">';
   return $actions;
 }
-add_filter('post_row_actions', 'expand_quick_edit_link', 10, 2);
+add_filter('post_row_actions', 'expand_quick_edit_ab_test_link', 10, 2);
 
-function save_quick_edit_data($post_id, $post)
+function save_quick_edit_ab_test_data($post_id, $post)
 {
   if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
   if ($post->post_type != 'post') return;
@@ -101,4 +101,4 @@ function save_quick_edit_data($post_id, $post)
     update_post_meta($post_id, 'run_test', 0);
   }
 }
-add_action('save_post', 'save_quick_edit_data', 10, 2);
+add_action('save_post', 'save_quick_edit_ab_test_data', 10, 2);
