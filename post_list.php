@@ -10,6 +10,9 @@ function ab_test_column_content($column_name, $post_id)
 {
   if ($column_name == 'custom_column') {
     $fields_list = get_post_meta($post_id, "fields_list", true);
+    if (!is_array($fields_list)) {
+      $fields_list = [];
+    }
     $fields_list = array_filter($fields_list, function ($item) {
       return !empty($item['path']) || !empty($item['ratio']);
     });
