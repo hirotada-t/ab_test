@@ -20,25 +20,24 @@ function check_error_count($fields_list)
     $path = $fields_list[$i]['path'];
     $ratio = $fields_list[$i]['ratio'];
 
-    if (get_page_by_path($path, OBJECT, "post") === null) {
+    if ($path && get_page_by_path($path, OBJECT, "post") === null) {
       $path_error++;
     }
     if (empty($path) xor empty($ratio)) {
       $not_entered_error++;
     }
   }
-
   return [$path_error, $not_entered_error];
 }
 
-function create_error_message($not_entered_error, $path_error)
+function create_error_message($path_error, $not_entered_error)
 {
   $error_message = '';
-  if ($not_entered_error > 0) {
-    $error_message .= '<span style="color:red;">※未入力の項目が' . $not_entered_error . '箇所あります。</span><br>';
-  }
   if ($path_error > 0) {
     $error_message .= '<span style="color:red;">※パスの入力ミスが' . $path_error . '箇所あります。</span><br>';
+  }
+  if ($not_entered_error > 0) {
+    $error_message .= '<span style="color:red;">※未入力の項目が' . $not_entered_error . '箇所あります。</span><br>';
   }
   return $error_message;
 }
