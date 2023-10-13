@@ -13,3 +13,4 @@ if (!defined('ABSPATH')) exit;
 require_once plugin_dir_path(__FILE__) . 'post_list.php';
 require_once plugin_dir_path(__FILE__) . 'edit_page.php';
 require_once plugin_dir_path(__FILE__) . 'redirect.php';
+// require_once plugin_dir_path(__FILE__) . 'check_test.php';
